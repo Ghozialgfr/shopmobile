@@ -1,30 +1,46 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:ppb_produk_bawaan/main.dart';
+import 'package:ppb_produk_bawaan/models/product.dart';
+import 'package:ppb_produk_bawaan/widgets/product_form_dialog.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('form validates and creates a product', (tester) async {
+    Product? createdProduct;
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () async {
+                createdProduct = await showDialog<Product>(
+                  context: context,
+                  builder: (_) => const ProductFormDialog(),
+                );
+              },
+              child: const Text('Open form'),
+            ),
+          ),
+        ),
+      ),
+    );
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    await tester.tap(find.text('Open form'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Tambah'));
+    await tester.pumpAndSettle();
+    expect(find.text('Nama produk wajib diisi'), findsOneWidget);
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    await tester.enterText(find.byType(TextFormField).at(0), 'Produk Uji');
+    await tester.enterText(find.byType(TextFormField).at(1), 'kategori-uji');
+    await tester.enterText(find.byType(TextFormField).at(2), '12500.5');
+    await tester.enterText(find.byType(TextFormField).at(3), '8');
+    await tester.tap(find.text('Tambah'));
+    await tester.pumpAndSettle();
+
+    expect(createdProduct?.title, 'Produk Uji');
+    expect(createdProduct?.category, 'kategori-uji');
+    expect(createdProduct?.price, 12500.5);
+    expect(createdProduct?.stock, 8);
   });
 }
