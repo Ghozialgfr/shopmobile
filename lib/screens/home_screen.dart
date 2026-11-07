@@ -68,33 +68,39 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     if (product == null || !mounted) return;
 
-    final nextId =
-        _products.fold<int>(
-          0,
-          (maxId, item) => item.id > maxId ? item.id : maxId,
-        ) +
-        1;
-    setState(() {
-      _products = [productWithId(product, nextId), ..._products];
-      _selectedCategory = product.category.trim();
-    });
-    _showMessage('Produk berhasil ditambahkan');
+    try {
+      final created = await ApiService.createProduct(product);
+      if (!mounted) return;
+      setState(() {
+        _products = [created, ..._products];
+        _selectedCategory = created.category.trim();
+      });
+      _showMessage('Produk berhasil ditambahkan');
+    } catch (e) {
+      _showMessage('$e');
+    }
   }
 
   Future<void> _editProduct(Product product) async {
-    final updated = await showDialog<Product>(
+    final edited = await showDialog<Product>(
       context: context,
       builder: (_) => ProductFormDialog(product: product),
     );
-    if (updated == null || !mounted) return;
+    if (edited == null || !mounted) return;
 
-    setState(() {
-      _products = _products
-          .map((item) => item.id == product.id ? updated : item)
-          .toList();
-      _clearMissingCategory();
-    });
-    _showMessage('Produk berhasil diperbarui');
+    try {
+      final updated = await ApiService.updateProduct(edited);
+      if (!mounted) return;
+      setState(() {
+        _products = _products
+            .map((item) => item.id == product.id ? updated : item)
+            .toList();
+        _clearMissingCategory();
+      });
+      _showMessage('Produk berhasil diperbarui');
+    } catch (e) {
+      _showMessage('$e');
+    }
   }
 
   Future<void> _deleteProduct(Product product) async {
@@ -117,11 +123,17 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     if (confirmed != true || !mounted) return;
 
-    setState(() {
-      _products.removeWhere((item) => item.id == product.id);
-      _clearMissingCategory();
-    });
-    _showMessage('Produk berhasil dihapus');
+    try {
+      await ApiService.deleteProduct(product.id);
+      if (!mounted) return;
+      setState(() {
+        _products.removeWhere((item) => item.id == product.id);
+        _clearMissingCategory();
+      });
+      _showMessage('Produk berhasil dihapus');
+    } catch (e) {
+      _showMessage('$e');
+    }
   }
 
   void _clearMissingCategory() {
@@ -159,6 +171,12 @@ class _HomeScreenState extends State<HomeScreen> {
     }).toList();
 
     return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _addProduct,
+        icon: const Icon(Icons.add),
+        label: const Text('Produk Baru'),
+        tooltip: 'Tambah produk baru',
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -183,15 +201,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Text(
                           'Halo, Selamat datang Ghozi 👋',
                           style: TextStyle(color: Colors.white, fontSize: 14),
-                        ),
-                      ),
-                      IconButton.filledTonal(
-                        tooltip: 'Tambah produk',
-                        onPressed: _addProduct,
-                        icon: const Icon(Icons.add),
-                        style: IconButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: AppColors.pink,
                         ),
                       ),
                     ],
